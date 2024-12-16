@@ -3,10 +3,12 @@ import sys
 import psycopg2
 import requests
 from pprint import pprint
+
 from config import config
+
+
 def get_vacancies(employer_id):
     """Получение данных по API"""
-
     params = {
         'area': 1,
         'page': 0,
@@ -27,7 +29,7 @@ def get_vacancies(employer_id):
         }
         vacancies_data.append(hh_vacancies)
 
-        return vacancies_data
+    return vacancies_data if vacancies_data else None
 
 
 def get_employer(employer_id):
@@ -55,13 +57,13 @@ def create_tables():
                 host=params['host'],
                 port=params['port']
             )
-        cursory = conn.cursor()
-        print("Подключение к PostgreSQL успешно установлено.")
+
+        print("Для создания таблиц подключение к PostgreSQL успешно установлено.")
     except psycopg2.Error as e:
-        print(f"Ошибка при подключении к PostgreSQL: {e}")
+        print(f"Создание таблиц ошибка при подключении к PostgreSQL: {e}")
         sys.exit(1)
 
-    with cursory as cur:
+    with conn.cursor() as cur:
         cur.execute('DROP TABLE IF EXISTS vacancies, employers CASCADE;')
 
     conn.commit()
@@ -84,47 +86,61 @@ def create_tables():
                     employer_id INTEGER REFERENCES employers(employer_id)
                     )""")
     conn.commit()
-    conn.close()
 
 
 def add_to_table(employers_list):
-    """Добавление данных в таблицу"""
-
     try:
         params = config()
         conn = psycopg2.connect(
-                dbname=params['dbname'],
-                user=params['user'],
-                password=params['password'],
-                host=params['host'],
-                port=params['port']
-            )
-        cursory = conn.cursor()
+            dbname=params['dbname'],
+            user=params['user'],
+            password=params['password'],
+            host=params['host'],
+            port=params['port']
+        )
         print("Подключение к PostgreSQL успешно установлено.")
-    except psycopg2.Error as e:
-        print(f"Ошибка при подключении к PostgreSQL: {e}")
-        sys.exit(1)
 
-    with cursory as cur:
-        cur.execute('TRUNCATE TABLE employers, vacancies RESTART IDENTITY;')
+        with conn.cursor() as cur:
+            # Очистка таблиц
+            cur.execute('TRUNCATE TABLE employers, vacancies RESTART IDENTITY;')
 
-        for employer in employers_list:
-            employer_list = get_employer(employer)
-            cur.execute('INSERT INTO employers (employer_id, company_name, open_vacancies) '
-                        'VALUES (%s, %s, %s) RETURNING employer_id',
-                        (employer_list['employer_id'], employer_list['company_name'],
-                         employer_list['open_vacancies']))
+            # Вставка работодателей
+            for employer in employers_list:
+                employer_list = get_employer(employer)
+                if employer_list is not None:
+                    cur.execute('INSERT INTO employers (employer_id, company_name, open_vacancies) '
+                                'VALUES (%s, %s, %s)',
+                                (employer_list['employer_id'], employer_list['company_name'],
+                                 employer_list['open_vacancies']))
 
-        for employer in employers_list:
-            vacancy_list = get_vacancies(employer)
-            for v in vacancy_list:
-                cur.execute('INSERT INTO vacancies (vacancy_id, vacancies_name, '
-                            'payment, requirement, vacancies_url, employer_id) '
-                            'VALUES (%s, %s, %s, %s, %s, %s)',
-                            (v['vacancy_id'], v['vacancies_name'], v['payment'],
-                             v['requirement'], v['vacancies_url'], v['employer_id']))
+            # Вставка вакансий
+            for employer in employers_list:
+                vacancy_list = get_vacancies(employer)
+                if vacancy_list is not None:
+                    for v in vacancy_list:
+                        if v is not None:
+                            cur.execute('INSERT INTO vacancies (vacancy_id, vacancies_name, '
+                                        'payment, requirement, vacancies_url, employer_id) '
+                                        'VALUES (%s, %s, %s, %s, %s, %s)',
+                                        (v['vacancy_id'], v['vacancies_name'], v['payment'],
+                                         v['requirement'], v['vacancies_url'], v['employer_id']))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
-add_to_table([1740, 15478, 8620, 3529, 78638, 4006, 4504679, 561525, 64174, 8642172])
+    except Exception as e:
+        print(f"Произошла ошибка при добавлении данных в таблицу: {e}")
+    return
+
+add_to_table([
+        "78638",
+        "2180",
+        "2748",
+        "3529",
+        "4716984",
+        "5516123",
+        "3776",
+        "2738360",
+        "5331842",
+        "1740"
+])
