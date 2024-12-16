@@ -30,32 +30,34 @@ class DBManager:
             print(f"Ошибка при подключении к PostgreSQL: {e}")
             sys.exit(1)
 
-    def disconnect(self):
-        if self.cur:
-            self.cur.close()
-        if self.conn:
-            self.conn.close()
-
-    def get_companies_and_vakancies_count(self):
-        '''Получение данных о компаниях и количестве вакансий'''
-
+    def get_companies_and_vacancies_count(self):
         if not self.cur:
             self.connect()
-        self.cur.execute('SELECT company_name, open_vacancies FROM employers')
-        rows = self.cur.fethall #читает все оставшиеся результаты запроса и возвращает их как список кортежей.
-        #Результат сохраняется в переменную rows
-        self.conn.commit()
-        return rows
 
-    def get_all_vakancies(self):
+        try:
+            self.cur.execute("SELECT company_name, COUNT(*) FROM employers GROUP BY company_name")
+            rows = self.cur.fetchall()
+            return rows
+        except psycopg2.Error as e:
+            print(f"Ошибка при выполнении запроса: {e}")
+            return None
+
+    def is_connected(self):
+        return self.conn is not None and self.cur is not None
+
+    def get_all_vacancies(self):
         """Получение всех вакансий"""
         if not self.cur:
             self.connect()
-        self.cur.execute('SELECT * FROM vacancies')
-        rows = self.cur.fethall  # читает все оставшиеся результаты запроса и возвращает их как список кортежей.
-        # Результат сохраняется в переменную rows
-        self.conn.commit()
-        return rows
+        try:
+            self.cur.execute("SELECT * FROM vacancies")
+            rows = self.cur.fetchall()  # читает все оставшиеся результаты запроса и возвращает их как список кортежей.
+            return rows
+
+        except psycopg2.Error as e:
+            print(f"Ошибка при выполнении запроса: {e}")
+            return None
+
 
     def get_avg_salary(self):
         """Получение средней заработной платы"""
@@ -63,7 +65,7 @@ class DBManager:
         if not self.cur:
             self.connect()
         self.cur.execute('SELECT ROUND(AVG(payment),2) FROM vacancies WHERE payment IS NOT NULL')
-        rows = self.cur.fethall  # читает все оставшиеся результаты запроса и возвращает их как список кортежей.
+        rows = self.cur.fetchall()  # читает все оставшиеся результаты запроса и возвращает их как список кортежей.
         # Результат сохраняется в переменную rows
         self.conn.commit()
         return f"Средняя заработная плата среди вакансий, в которых указана зарплата: {rows[0][0]} руб."
@@ -90,3 +92,9 @@ class DBManager:
             return f"Вакансии по ключевому слову '{keyword}': нет"
         self.conn.commit()
         return f"Вакансии по ключевому слову '{keyword}': {rows}"
+
+    def disconnect(self):
+        if self.cur:
+            self.cur.close()
+        if self.conn:
+            self.conn.close()
