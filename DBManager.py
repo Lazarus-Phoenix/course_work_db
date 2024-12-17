@@ -144,7 +144,7 @@ class DBManager:
                 result += f"ID: {vacancy_id}\n"
                 result += f"Название: {vacancies_name}\n"
                 result += f"Оклад: {payment} руб.\n"
-                result += f"Требования: {requirement[:100]}...\n"  # Обрезаем до 100 символов
+                result += f"Требования: {requirement}...\n"  # Обрезаем до 100 символов
                 result += f"Ссылка: {vacancies_url}\n"
                 result += f"ID работодателя: {employer_id}\n"
 
