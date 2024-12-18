@@ -3,7 +3,8 @@ from utils import create_tables, add_to_table
 from pprint import pprint
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    """Функция взаимодействия с пользователем"""
     employers_list = [
         "78638",
         "2180",
@@ -14,20 +15,20 @@ if __name__ == '__main__':
         "3776",
         "2738360",
         "5331842",
-        "1740"
+        "1740",
     ]
     db = DBManager()
     create_tables()
     add_to_table(employers_list)
 
-    text = ("""Варианты использования:
+    text = """Варианты использования:
     1 - получить список всех компаний и количество вакансий у каждой компании.
     2 - получить список всех вакансий с указанием названия компании, названия вакансии и зарплаты и ссылки на вакансию.
     3 - получить среднюю зарплату по вакансиям.
     4 - получить список всех вакансий с зарплатой выше средней.
     5 - получить список всех вакансий по ключевому слову.
     6 - показать варианты использования
-    7 - выход""")
+    7 - выход"""
 
     print(text)
 
@@ -48,7 +49,7 @@ if __name__ == '__main__':
             pprint(db.get_vacancies_with_higher_salary())
         elif answer == 5:
             keyword = input("Введите ключевое слово: ")
-            pprint(db.get_vacancies_with_keyword(keyword))
+            pprint(db.get_vacancies_with_keyword(keyword), indent = 4)
         elif answer == 6:
             print(text)
             continue
